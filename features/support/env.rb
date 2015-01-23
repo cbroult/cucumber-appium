@@ -1,17 +1,7 @@
 require 'net/http'
 require 'rspec/expectations'
 require 'selenium-webdriver'
-
-ENABLED_NET_HTTP_TIMEOUT = false
-
-class Net::HTTP
-  alias_method  :__original_initialize__, :initialize
-
-  def initialize(address, port = nil)
-    __original_initialize__(address, port)
-    @read_timeout = 300
-  end
-end if ENABLED_NET_HTTP_TIMEOUT
+require 'selenium/webdriver/remote/http/persistent'
 
 APP_PATH = '/../../PlainNote/build/Release-iphonesimulator/PlainNote.app'
 USERNAME = ENV['SAUCE_USERNAME']
@@ -63,7 +53,15 @@ def selenium
 end
 
 def sauce
-  @sauce ||= Selenium::WebDriver.for(:remote, :desired_capabilities => sauce_capabilities, :url => sauce_url)
+  @sauce ||= Selenium::WebDriver.for(:remote, :desired_capabilities => sauce_capabilities, :url => sauce_url, :http_client => long_lived_client)
+end
+
+private
+
+def long_lived_client
+  http_client = ::Selenium::WebDriver::Remote::Http::Persistent.new
+  http_client.timeout = 300 # Browser launch can take a while
+  return http_client
 end
 
 #After { @sauce.quit }
